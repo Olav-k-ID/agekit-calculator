@@ -1,6 +1,49 @@
 import React, { useMemo, useState } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
+/** =======================
+ *  COPY — edit all text here
+ *  ======================= */
+const COPY = {
+  // Controls
+  titleGames: 'Number of Games',
+  hintGames: 'Each game that needs an age gate',
+  titleCountries: 'Number of Countries',
+  hintCountries: 'Economies of scale after 10 countries — "10+" is capped for calculations',
+  titleAgeGroup: 'Age Group',
+  hintAgeGroup: 'Affects verification flows',
+  titleCurrency: 'Currency',
+  hintCurrency: 'Applies demo rates',
+  titleLive: 'Is the game already live?',
+  liveNo: 'No (new launch)',
+  liveYes: 'Yes (already live)',
+
+  // Summary
+  modePrefix: 'Mode:',
+  modeNew: 'New launch (not yet live)',
+  modeLive: 'Retrofitting an already-live game',
+  summaryManualA: 'Manual setup would take about',
+  summaryManualBWeeks: 'weeks and cost',
+  summaryKID: 'With k-ID, you will pay a standard single fee.',
+  jurisdictionNote:
+    'Multiple jurisdictions detected (GDPR-K, COPPA, DSA Art 28). Typically each adds legal & localization overhead — with k-ID this is handled centrally.',
+  savingsPrefix: 'You save approximately',
+
+  // Chart
+  chartToggleLabel: 'Show',
+  chartToggleTime: 'Time',
+  chartToggleCost: 'Cost',
+  chartNote: 'k-ID ≈ 0 hidden for readability',
+  chartYAxisTime: 'Hours',
+  chartYAxisCost: (symbol) => `Cost (${symbol})`,
+  chartSeriesTime: 'Manual (hours)',
+  chartSeriesCost: (symbol) => `Manual (${symbol})`,
+
+  // CTA
+  cta: 'Book a Demo',
+}
+
+/** Currency config */
 const CURRENCIES = {
   EUR: { symbol: '€', rate: 1 },
   USD: { symbol: '$', rate: 1.08 },
@@ -12,11 +55,11 @@ const HUBSPOT_EVENT = { id: 'agekit_calculator_book_demo' } // CTA click trackin
 export default function AgeKitCalculator() {
   // ---- Inputs ----
   const [games, setGames] = useState(2)
-  const [countries, setCountries] = useState(5) // 1..11 (11 = 10+)
+  const [countries, setCountries] = useState(5) // 1..11 (11 = "10+")
   const [ageGroup, setAgeGroup] = useState('under13')
   const [currency, setCurrency] = useState('EUR')
   const [metric, setMetric] = useState('time') // 'time' | 'cost'
-  const [isLive, setIsLive] = useState(false) // false = new launch; true = already live (retrofit)
+  const [isLive, setIsLive] = useState(false)  // false = new launch; true = retrofit
 
   // ---- Countries cap & display (economies of scale after 10) ----
   const effectiveCountries = Math.min(countries, 10)
@@ -28,12 +71,12 @@ export default function AgeKitCalculator() {
   const agekitHoursPerUnit = 1
   const agekitCostPerUnitEUR = 0
 
-  // ---- Retrofit multipliers when game is already live (tweak as needed) ----
+  // ---- Retrofit multipliers when game is already live (tweak if needed) ----
   const LIVE_MULTIPLIERS = {
     manualTime: 1.5,   // +50% manual time
     manualCost: 1.25,  // +25% manual cost
     agekitTime: 1.2,   // +20% AgeKit time (still small)
-    agekitCost: 1      // keep €0 unless you want a marginal retrofit cost
+    agekitCost: 1,     // keep €0 unless you want a marginal retrofit cost
   }
 
   // Apply multipliers if retrofitting
@@ -76,8 +119,8 @@ export default function AgeKitCalculator() {
       {/* Controls */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Control
-          label={`Number of Games: ${games}`}
-          hint="Each game that needs an age gate"
+          label={`${COPY.titleGames}: ${games}`}
+          hint={COPY.hintGames}
         >
           <input
             type="range"
@@ -90,8 +133,8 @@ export default function AgeKitCalculator() {
         </Control>
 
         <Control
-          label={`Number of Countries: ${countriesLabel}`}
-          hint='Economies of scale after 10 countries — "10+" is capped for calculations'
+          label={`${COPY.titleCountries}: ${countriesLabel}`}
+          hint={COPY.hintCountries}
         >
           <input
             type="range"
@@ -103,7 +146,7 @@ export default function AgeKitCalculator() {
           />
         </Control>
 
-        <Control label="Age Group" hint="Affects verification flows">
+        <Control label={COPY.titleAgeGroup} hint={COPY.hintAgeGroup}>
           <select
             value={ageGroup}
             onChange={(e) => setAgeGroup(e.target.value)}
@@ -115,7 +158,7 @@ export default function AgeKitCalculator() {
           </select>
         </Control>
 
-        <Control label="Currency" hint="Applies demo rates">
+        <Control label={COPY.titleCurrency} hint={COPY.hintCurrency}>
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
@@ -127,19 +170,19 @@ export default function AgeKitCalculator() {
           </select>
         </Control>
 
-        <Control label="Game already live?" hint="Retrofit adds integration, QA, and migration overhead">
+        <Control label={COPY.titleLive} hint="Retrofit adds integration, QA, and migration overhead">
           <div className="flex gap-2">
             <button
               onClick={() => setIsLive(false)}
               className={`px-3 py-1 rounded-xl2 border text-sm ${!isLive ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
             >
-              No (new launch)
+              {COPY.liveNo}
             </button>
             <button
               onClick={() => setIsLive(true)}
               className={`px-3 py-1 rounded-xl2 border text-sm ${isLive ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
             >
-              Yes (already live)
+              {COPY.liveYes}
             </button>
           </div>
         </Control>
@@ -148,41 +191,49 @@ export default function AgeKitCalculator() {
       {/* Summary */}
       <div className="bg-blackberry-light rounded-xl2 p-6 shadow-soft space-y-3">
         <p className="text-xs text-gray-400">
-          Mode: {isLive ? 'Retrofitting an already-live game' : 'New launch (not yet live)'}
+          {COPY.modePrefix} {isLive ? COPY.modeLive : COPY.modeNew}
         </p>
+
         <p className="text-lg font-semibold">
-          Manual setup would take about <span className="text-kid-orange">{fmtInt(manualHours / HOURS_PER_WEEK)} weeks</span> and cost <span className="text-kid-orange">{fmtMoney(manualCost)}</span>.
+          {COPY.summaryManualA}{' '}
+          <span className="text-kid-orange">{fmtInt(manualHours / HOURS_PER_WEEK)} {COPY.summaryManualBWeeks}</span>{' '}
+          <span className="text-kid-orange">{fmtMoney(manualCost)}</span>.
         </p>
+
+        {/* k-ID line (replaces the old AgeKit line) */}
         <p className="text-lg font-semibold">
-          With AgeKit, you're live in just <span className="text-kid-orange">{fmtInt(agekitHours)}</span> hours — for <span className="text-kid-orange">{fmtMoney(agekitCost)}</span>.
+          {COPY.summaryKID}
         </p>
+
         {effectiveCountries > 1 && (
           <p className="text-sm text-gray-300">
-            Multiple jurisdictions detected (GDPR-K, COPPA, DSA Art 28). Typically each adds legal & localization overhead — with AgeKit this is handled centrally.
+            {COPY.jurisdictionNote}
           </p>
         )}
-        <p className="text-green-300 font-bold">
-          You save approximately {timeSavedPct.toFixed(1)}% of time and {fmtMoney(costSaved)}.
+
+        {/* Bigger savings line */}
+        <p className="text-green-300 font-extrabold text-xl md:text-2xl">
+          {COPY.savingsPrefix} {timeSavedPct.toFixed(1)}% of time and {fmtMoney(costSaved)}.
         </p>
       </div>
 
-      {/* Single-metric chart (Manual only; AgeKit ≈ 0 hidden for readability) */}
+      {/* Single-metric chart (Manual only; k-ID ≈ 0 hidden for readability) */}
       <div className="bg-blackberry-light rounded-xl2 p-6 shadow-soft">
         <div className="flex items-center gap-3 mb-4">
-          <span className="text-sm text-gray-300">Show</span>
+          <span className="text-sm text-gray-300">{COPY.chartToggleLabel}</span>
           <button
             onClick={() => setMetric('time')}
             className={`px-3 py-1 rounded-xl2 border text-sm ${metric==='time' ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
           >
-            Time
+            {COPY.chartToggleTime}
           </button>
           <button
             onClick={() => setMetric('cost')}
             className={`px-3 py-1 rounded-xl2 border text-sm ${metric==='cost' ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
           >
-            Cost
+            {COPY.chartToggleCost}
           </button>
-          <span className="ml-auto text-xs text-gray-400">AgeKit ≈ 0 hidden for readability</span>
+          <span className="ml-auto text-xs text-gray-400">{COPY.chartNote}</span>
         </div>
 
         <div className="h-96">
@@ -195,18 +246,32 @@ export default function AgeKitCalculator() {
               <YAxis
                 stroke="#FFFFFF"
                 width={90}
-                tickFormatter={(v) => metric==='time' ? v.toLocaleString() : `${symbol}${Number(v).toLocaleString()}`}
-                label={{ value: metric==='time' ? 'Hours' : `Cost (${symbol})`, angle: -90, position: 'insideLeft' }}
+                tickFormatter={(v) =>
+                  metric === 'time'
+                    ? v.toLocaleString()
+                    : `${symbol}${Number(v).toLocaleString()}`
+                }
+                label={{
+                  value: metric === 'time' ? COPY.chartYAxisTime : COPY.chartYAxisCost(symbol),
+                  angle: -90,
+                  position: 'insideLeft',
+                }}
               />
               <Tooltip
-                formatter={(value) => metric==='time'
-                  ? [value.toLocaleString() + ' h', 'Manual']
-                  : [`${symbol}${Number(value).toLocaleString()}`, 'Manual']
+                formatter={(value) =>
+                  metric === 'time'
+                    ? [value.toLocaleString() + ' h', 'Manual']
+                    : [`${symbol}${Number(value).toLocaleString()}`, 'Manual']
                 }
                 contentStyle={{ background: '#2C216F', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
               />
               <Legend />
-              <Bar dataKey="Value" name={metric==='time' ? 'Manual (hours)' : `Manual (${symbol})`} fill="#715DEC" radius={[8,8,0,0]} />
+              <Bar
+                dataKey="Value"
+                name={metric === 'time' ? COPY.chartSeriesTime : COPY.chartSeriesCost(symbol)}
+                fill="#715DEC"
+                radius={[8, 8, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -215,7 +280,7 @@ export default function AgeKitCalculator() {
           onClick={handleBookDemo}
           className="mt-6 w-full bg-kid-purple hover:opacity-90 text-white text-lg font-semibold py-3 rounded-xl2 transition"
         >
-          Book a Demo
+          {COPY.cta}
         </button>
       </div>
     </div>
