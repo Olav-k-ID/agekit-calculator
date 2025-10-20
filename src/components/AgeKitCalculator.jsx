@@ -53,6 +53,8 @@ export default function AgeKitCalculator() {
     window.location.href = 'https://qikgm.share.hsforms.com/2QUFcj5HFSUaJxCVd8JlCWA'
   }
 
+const [metric, setMetric] = useState('time'); // 'time' | 'cost'
+  
   return (
     <div className="space-y-6">
       {/* Controls */}
@@ -128,33 +130,61 @@ export default function AgeKitCalculator() {
         </p>
       </div>
 
-      {/* Charts */}
-      <div className="bg-blackberry-light rounded-xl2 p-6 shadow-soft">
-        <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
-              <XAxis dataKey="name" stroke="#FFFFFF" />
-              <YAxis stroke="#FFFFFF" />
-              <Tooltip
-                formatter={(value, name) => {
-                  if (name === 'Time') return [value.toLocaleString() + ' h', 'Time']
-                  return [symbol + Number(value).toLocaleString(), 'Cost']
-                }}
-                contentStyle={{ background: '#2C216F', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
-              />
-              <Legend />
-              <Bar dataKey="Time" name="Time (hours)" fill="#715DEC" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="Cost" name={`Cost (${symbol})`} fill="#FC6E0F" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <button
-          onClick={handleBookDemo}
-          className="mt-6 w-full bg-kid-purple hover:opacity-90 text-white text-lg font-semibold py-3 rounded-xl2 transition"
-        >
-          Book a Demo
-        </button>
-      </div>
+   {/* Charts */}
+<div className="bg-blackberry-light rounded-xl2 p-6 shadow-soft">
+  {/* Toggle to choose which metric to display */}
+  <div className="flex items-center gap-3 mb-4">
+    <span className="text-sm text-gray-300">Show</span>
+    <button
+      onClick={() => setMetric('time')}
+      className={`px-3 py-1 rounded-xl2 border text-sm ${metric==='time' ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
+    >
+      Time
+    </button>
+    <button
+      onClick={() => setMetric('cost')}
+      className={`px-3 py-1 rounded-xl2 border text-sm ${metric==='cost' ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
+    >
+      Cost
+    </button>
+    <span className="ml-auto text-xs text-gray-400">
+      Note: AgeKit ≈ 0, hidden for readability.
+    </span>
+  </div>
+
+  {/* Single-metric chart (Manual only) */}
+  <div className="h-96">
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart
+        data={[{ name: 'Manual', Value: metric==='time' ? manualHours : Number(manualCost.toFixed(2)) }]}
+        margin={{ top: 10, right: 20, bottom: 10, left: 70 }}
+      >
+        <XAxis dataKey="name" stroke="#FFFFFF" />
+        <YAxis
+          stroke="#FFFFFF"
+          width={90}
+          tickFormatter={(v) => metric==='time' ? v.toLocaleString() : `${symbol}${Number(v).toLocaleString()}`}
+          label={{ value: metric==='time' ? 'Hours' : `Cost (${symbol})`, angle: -90, position: 'insideLeft' }}
+        />
+        <Tooltip
+          formatter={(value) => metric==='time'
+            ? [value.toLocaleString() + ' h', 'Manual']
+            : [`${symbol}${Number(value).toLocaleString()}`, 'Manual']
+          }
+          contentStyle={{ background: '#2C216F', border: '1px solid rgba(255,255,255,0.1)', color: '#fff' }}
+        />
+        <Bar dataKey="Value" name={metric==='time' ? 'Manual (hours)' : `Manual (${symbol})`} fill="#715DEC" radius={[8,8,0,0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+
+  <button
+    onClick={handleBookDemo}
+    className="mt-6 w-full bg-kid-purple hover:opacity-90 text-white text-lg font-semibold py-3 rounded-xl2 transition"
+  >
+    Book a Demo
+  </button>
+</div>
     </div>
   )
 }
