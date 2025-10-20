@@ -7,13 +7,13 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 const COPY = {
   // Controls
   titleGames: 'Number of Games',
-  hintGames: 'Each game that needs an age gate',
+  hintGames: 'Each game that needs to be compliant',
   titleCountries: 'Number of Countries',
-  hintCountries: 'Economies of scale after 10 countries — "10+" is capped for calculations',
+  hintCountries: 'The assumption is you will obtain economies of scale after 10 countries',
   titleAgeGroup: 'Age Group',
   hintAgeGroup: 'Affects verification flows',
   titleCurrency: 'Currency',
-  hintCurrency: 'Applies demo rates',
+  hintCurrency: 'Your local currency',
   titleLive: 'Is the game already live?',
   liveNo: 'No (new launch)',
   liveYes: 'Yes (already live)',
