@@ -26,16 +26,38 @@ export default function AgeKitCalculator() {
   const agekitHoursPerUnit = 1 // per game per country
   const agekitCostPerUnitEUR = 0
 
+  const [isLive, setIsLive] = useState(false); // false = not live (default)
+
+// Tunable retrofit multipliers when a game is already live
+const LIVE_MULTIPLIERS = {
+  manualTime: 1.5,   // +50% time
+  manualCost: 1.25,  // +25% cost
+  agekitTime: 1.2,   // +20% time
+  agekitCost: 1,     // keep 0 unless you want a non-zero marginal cost
+};
+
   const rate = CURRENCIES[currency].rate
   const symbol = CURRENCIES[currency].symbol
 
   // IMPORTANT: use effectiveCountries in all math
-  const units = games * effectiveCountries
+  const units = games * effectiveCountries;
 
-  const manualHours = useMemo(() => units * manualWeeksPerUnit * 40, [units])
-  const agekitHours = useMemo(() => units * agekitHoursPerUnit, [units])
-  const manualCost = useMemo(() => units * manualCostPerUnitEUR * rate, [units, rate])
-  const agekitCost = useMemo(() => units * agekitCostPerUnitEUR * rate, [units, rate])
+const manualHours = useMemo(() => units * manualWeeksPerUnitAdj * 40, [units, manualWeeksPerUnitAdj]);
+const agekitHours = useMemo(() => units * agekitHoursPerUnitAdj,       [units, agekitHoursPerUnitAdj]);
+
+const manualCost = useMemo(() => units * manualCostPerUnitAdjEUR * rate, [units, manualCostPerUnitAdjEUR, rate]);
+const agekitCost = useMemo(() => units * agekitCostPerUnitAdjEUR * rate, [units, agekitCostPerUnitAdjEUR, rate]);
+
+
+const [isLive, setIsLive] = useState(false); // false = not live (default)
+
+// Tunable retrofit multipliers when a game is already live
+const LIVE_MULTIPLIERS = {
+  manualTime: 1.5,   // +50% time
+  manualCost: 1.25,  // +25% cost
+  agekitTime: 1.2,   // +20% time
+  agekitCost: 1,     // keep 0 unless you want a non-zero marginal cost
+};
 
   const timeSavedPct = manualHours > 0 ? ((manualHours - agekitHours) / manualHours) * 100 : 0
   const costSaved = manualCost - agekitCost
@@ -98,6 +120,23 @@ export default function AgeKitCalculator() {
           </select>
         </Control>
 
+        <Control label="Game already live?" hint="Retrofit adds integration, QA, and migration overhead">
+  <div className="flex gap-2">
+    <button
+      onClick={() => setIsLive(false)}
+      className={`px-3 py-1 rounded-xl2 border text-sm ${!isLive ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
+    >
+      No (new launch)
+    </button>
+    <button
+      onClick={() => setIsLive(true)}
+      className={`px-3 py-1 rounded-xl2 border text-sm ${isLive ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
+    >
+      Yes (already live)
+    </button>
+  </div>
+</Control>
+
         <Control label="Currency" hint="Applies fixed demo rates">
           <select
             value={currency}
@@ -127,6 +166,10 @@ export default function AgeKitCalculator() {
         <p className="text-green-300 font-bold">
           You save approximately {timeSavedPct.toFixed(1)}% of time and {formatMoney(costSaved)}.
         </p>
+        <p className="text-xs text-gray-400">
+  Mode: {isLive ? 'Retrofitting an already-live game' : 'New launch (not yet live)'}
+</p>
+
       </div>
 
       {/* Single-metric chart (Manual only, toggle Time/Cost) */}
