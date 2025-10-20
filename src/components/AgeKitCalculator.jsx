@@ -7,67 +7,62 @@ const CURRENCIES = {
   GBP: { symbol: '£', rate: 0.85 },
 }
 
-const HUBSPOT_EVENT = { id: 'agekit_calculator_book_demo' } // Track click
+const HUBSPOT_EVENT = { id: 'agekit_calculator_book_demo' } // CTA click tracking
 
 export default function AgeKitCalculator() {
+  // ---- Inputs ----
   const [games, setGames] = useState(2)
   const [countries, setCountries] = useState(5) // 1..11 (11 = 10+)
   const [ageGroup, setAgeGroup] = useState('under13')
   const [currency, setCurrency] = useState('EUR')
   const [metric, setMetric] = useState('time') // 'time' | 'cost'
+  const [isLive, setIsLive] = useState(false) // false = new launch; true = already live (retrofit)
 
-  // ---- Countries cap & display ----
+  // ---- Countries cap & display (economies of scale after 10) ----
   const effectiveCountries = Math.min(countries, 10)
   const countriesLabel = countries >= 11 ? '10+' : String(countries)
 
-  // Assumptions
-  const manualWeeksPerUnit = 1 // per game per country
+  // ---- Baseline assumptions (per game-per-country) ----
+  const manualWeeksPerUnit = 1
   const manualCostPerUnitEUR = 5000
-  const agekitHoursPerUnit = 1 // per game per country
+  const agekitHoursPerUnit = 1
   const agekitCostPerUnitEUR = 0
 
-  const [isLive, setIsLive] = useState(false); // false = not live (default)
+  // ---- Retrofit multipliers when game is already live (tweak as needed) ----
+  const LIVE_MULTIPLIERS = {
+    manualTime: 1.5,   // +50% manual time
+    manualCost: 1.25,  // +25% manual cost
+    agekitTime: 1.2,   // +20% AgeKit time (still small)
+    agekitCost: 1      // keep €0 unless you want a marginal retrofit cost
+  }
 
-// Tunable retrofit multipliers when a game is already live
-const LIVE_MULTIPLIERS = {
-  manualTime: 1.5,   // +50% time
-  manualCost: 1.25,  // +25% cost
-  agekitTime: 1.2,   // +20% time
-  agekitCost: 1,     // keep 0 unless you want a non-zero marginal cost
-};
+  // Apply multipliers if retrofitting
+  const manualWeeksPerUnitAdj   = isLive ? manualWeeksPerUnit   * LIVE_MULTIPLIERS.manualTime : manualWeeksPerUnit
+  const manualCostPerUnitAdjEUR = isLive ? manualCostPerUnitEUR * LIVE_MULTIPLIERS.manualCost : manualCostPerUnitEUR
+  const agekitHoursPerUnitAdj   = isLive ? agekitHoursPerUnit   * LIVE_MULTIPLIERS.agekitTime : agekitHoursPerUnit
+  const agekitCostPerUnitAdjEUR = isLive ? agekitCostPerUnitEUR * LIVE_MULTIPLIERS.agekitCost : agekitCostPerUnitEUR
 
+  // ---- Currency + units ----
   const rate = CURRENCIES[currency].rate
   const symbol = CURRENCIES[currency].symbol
+  const units = games * effectiveCountries
+  const HOURS_PER_WEEK = 40
 
-  // IMPORTANT: use effectiveCountries in all math
-  const units = games * effectiveCountries;
+  // ---- Calculations ----
+  const manualHours = useMemo(() => units * manualWeeksPerUnitAdj * HOURS_PER_WEEK, [units, manualWeeksPerUnitAdj])
+  const agekitHours = useMemo(() => units * agekitHoursPerUnitAdj, [units, agekitHoursPerUnitAdj])
 
-const manualHours = useMemo(() => units * manualWeeksPerUnitAdj * 40, [units, manualWeeksPerUnitAdj]);
-const agekitHours = useMemo(() => units * agekitHoursPerUnitAdj,       [units, agekitHoursPerUnitAdj]);
-
-const manualCost = useMemo(() => units * manualCostPerUnitAdjEUR * rate, [units, manualCostPerUnitAdjEUR, rate]);
-const agekitCost = useMemo(() => units * agekitCostPerUnitAdjEUR * rate, [units, agekitCostPerUnitAdjEUR, rate]);
-
-
-const [isLive, setIsLive] = useState(false); // false = not live (default)
-
-// Tunable retrofit multipliers when a game is already live
-const LIVE_MULTIPLIERS = {
-  manualTime: 1.5,   // +50% time
-  manualCost: 1.25,  // +25% cost
-  agekitTime: 1.2,   // +20% time
-  agekitCost: 1,     // keep 0 unless you want a non-zero marginal cost
-};
+  const manualCost = useMemo(() => units * manualCostPerUnitAdjEUR * rate, [units, manualCostPerUnitAdjEUR, rate])
+  const agekitCost = useMemo(() => units * agekitCostPerUnitAdjEUR * rate, [units, agekitCostPerUnitAdjEUR, rate])
 
   const timeSavedPct = manualHours > 0 ? ((manualHours - agekitHours) / manualHours) * 100 : 0
   const costSaved = manualCost - agekitCost
 
-  const formatNumber = (n) =>
-    n.toLocaleString(undefined, { maximumFractionDigits: 0 })
+  // ---- Formatting ----
+  const fmtInt = (n) => n.toLocaleString(undefined, { maximumFractionDigits: 0 })
+  const fmtMoney = (n) => `${symbol}${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
 
-  const formatMoney = (n) =>
-    `${symbol}${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
-
+  // ---- CTA ----
   const handleBookDemo = () => {
     try {
       window._hsq = window._hsq || []
@@ -101,7 +96,7 @@ const LIVE_MULTIPLIERS = {
           <input
             type="range"
             min={1}
-            max={11}               // 11 represents "10+"
+            max={11} // 11 represents "10+"
             value={countries}
             onChange={(e) => setCountries(Number(e.target.value))}
             className="w-full accent-kid-purple"
@@ -120,24 +115,7 @@ const LIVE_MULTIPLIERS = {
           </select>
         </Control>
 
-        <Control label="Game already live?" hint="Retrofit adds integration, QA, and migration overhead">
-  <div className="flex gap-2">
-    <button
-      onClick={() => setIsLive(false)}
-      className={`px-3 py-1 rounded-xl2 border text-sm ${!isLive ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
-    >
-      No (new launch)
-    </button>
-    <button
-      onClick={() => setIsLive(true)}
-      className={`px-3 py-1 rounded-xl2 border text-sm ${isLive ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
-    >
-      Yes (already live)
-    </button>
-  </div>
-</Control>
-
-        <Control label="Currency" hint="Applies fixed demo rates">
+        <Control label="Currency" hint="Applies demo rates">
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
@@ -148,15 +126,35 @@ const LIVE_MULTIPLIERS = {
             <option value="GBP">£ GBP</option>
           </select>
         </Control>
+
+        <Control label="Game already live?" hint="Retrofit adds integration, QA, and migration overhead">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setIsLive(false)}
+              className={`px-3 py-1 rounded-xl2 border text-sm ${!isLive ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
+            >
+              No (new launch)
+            </button>
+            <button
+              onClick={() => setIsLive(true)}
+              className={`px-3 py-1 rounded-xl2 border text-sm ${isLive ? 'bg-kid-purple border-kid-purple' : 'border-white/10'}`}
+            >
+              Yes (already live)
+            </button>
+          </div>
+        </Control>
       </div>
 
       {/* Summary */}
       <div className="bg-blackberry-light rounded-xl2 p-6 shadow-soft space-y-3">
-        <p className="text-lg font-semibold">
-          Manual setup would take about <span className="text-kid-orange">{formatNumber(manualHours / 40)} weeks</span> and cost <span className="text-kid-orange">{formatMoney(manualCost)}</span>.
+        <p className="text-xs text-gray-400">
+          Mode: {isLive ? 'Retrofitting an already-live game' : 'New launch (not yet live)'}
         </p>
         <p className="text-lg font-semibold">
-          With AgeKit, you're live in just <span className="text-kid-orange">{formatNumber(agekitHours)}</span> hours — for <span className="text-kid-orange">{formatMoney(agekitCost)}</span>.
+          Manual setup would take about <span className="text-kid-orange">{fmtInt(manualHours / HOURS_PER_WEEK)} weeks</span> and cost <span className="text-kid-orange">{fmtMoney(manualCost)}</span>.
+        </p>
+        <p className="text-lg font-semibold">
+          With AgeKit, you're live in just <span className="text-kid-orange">{fmtInt(agekitHours)}</span> hours — for <span className="text-kid-orange">{fmtMoney(agekitCost)}</span>.
         </p>
         {effectiveCountries > 1 && (
           <p className="text-sm text-gray-300">
@@ -164,15 +162,11 @@ const LIVE_MULTIPLIERS = {
           </p>
         )}
         <p className="text-green-300 font-bold">
-          You save approximately {timeSavedPct.toFixed(1)}% of time and {formatMoney(costSaved)}.
+          You save approximately {timeSavedPct.toFixed(1)}% of time and {fmtMoney(costSaved)}.
         </p>
-        <p className="text-xs text-gray-400">
-  Mode: {isLive ? 'Retrofitting an already-live game' : 'New launch (not yet live)'}
-</p>
-
       </div>
 
-      {/* Single-metric chart (Manual only, toggle Time/Cost) */}
+      {/* Single-metric chart (Manual only; AgeKit ≈ 0 hidden for readability) */}
       <div className="bg-blackberry-light rounded-xl2 p-6 shadow-soft">
         <div className="flex items-center gap-3 mb-4">
           <span className="text-sm text-gray-300">Show</span>
